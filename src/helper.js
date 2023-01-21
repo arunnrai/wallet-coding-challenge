@@ -8,8 +8,13 @@ class CustomError extends Error {
     }
 }
 
+function formatAmount(amount) {
+    //Need float amount in 2 decimal places
+    return parseFloat(parseFloat(amount).toFixed(2));
+}
 
 async function createNewWallet(name, balance) {
+    balance = formatAmount(balance);
     const guid = uuid.v4() // generate a new guid
     const sql = 'INSERT INTO wallet SET id = ?, name = ?, balance = ?';
     const values = [guid, name, balance];
@@ -21,9 +26,9 @@ async function createNewWallet(name, balance) {
 }
 
 async function isWalletExists(walletId) {
-    const sql_exits = 'SELECT 1 FROM wallet WHERE id = ? limit 1';
-    const values_ex = [walletId];
-    const rows = await conn.query(sql_exits, values_ex);
+    const sql = 'SELECT 1 FROM wallet WHERE id = ? limit 1';
+    const values = [walletId];
+    const rows = await conn.query(sql, values);
     if (rows.length < 1) {
         return true;
     }
@@ -31,9 +36,9 @@ async function isWalletExists(walletId) {
 }
 
 async function fetchWalletById(walletId) {
-    const sql_exits = 'SELECT id, name, balance, createdDate FROM wallet WHERE id = ? limit 1';
-    const values_ex = [walletId];
-    const rows = await conn.query(sql_exits, values_ex);
+    const sql = 'SELECT id, name, balance, createdDate FROM wallet WHERE id = ? limit 1';
+    const values = [walletId];
+    const rows = await conn.query(sql, values);
     if (rows.length > 0) {
         return rows[0];
     }
@@ -41,9 +46,10 @@ async function fetchWalletById(walletId) {
 }
 
 async function updateWalletBalance(walletId, newBalance) {
-    const sql_exits = 'UPDATE wallet SET balance = ? WHERE id = ? limit 1';
-    const values_ex = [newBalance, walletId];
-    const rows = await conn.query(sql_exits, values_ex);
+    newBalance = formatAmount(newBalance);
+    const sql = 'UPDATE wallet SET balance = ? WHERE id = ? limit 1';
+    const values = [newBalance, walletId];
+    const rows = await conn.query(sql, values);
     if (rows.affectedRows > 0) {
         return true
     }
@@ -51,17 +57,22 @@ async function updateWalletBalance(walletId, newBalance) {
 }
 
 async function getWalletTransactions(walletId) {
+    if (!isWalletExists()) {
+        throw new CustomError('Wallet Not Found');
+    }
     const sql_exits = 'SELECT * FROM transactions WHERE walletId = ? order by createdDate desc';
     const values_ex = [walletId];
     const rows = await conn.query(sql_exits, values_ex);
     if (rows.length > 0) {
         return rows;
     }
-    throw new CustomError('Wallet Not Found');
+    return []; //no transactions of user
 }
 
 async function createTransaction(walletId, amount, description ) {
-    if (isNaN(Math.sign(amount))){
+    const amountSign = Math.sign(amount);
+    //check amount is invalid or 0
+    if (isNaN(amountSign) || amountSign === 0) {
         throw new CustomError('please enter correct value');
     }
 
@@ -71,12 +82,24 @@ async function createTransaction(walletId, amount, description ) {
         throw new CustomError('Wallet not found');
     }
     let balance = wallet.balance;
-    amount = parseFloat(amount).toFixed(2)
-    balance = parseFloat(balance).toFixed(2);
-    const newBalance = (parseFloat(balance) + parseFloat(amount)).toFixed(2);
+    amount = formatAmount(amount);
+    balance = formatAmount(balance);
+    const newBalance = formatAmount(balance + amount);
+    // oh! Request for withdrawal
+    if (amountSign === -1) {
+        // check user has sufficient balance
+        if (Math.abs(amount) > balance) {
+            throw new CustomError('Invalid amount, you don\'t have sufficient balance' );
+        }
+    }
 
-    if (newBalance < 0){
-        throw new CustomError('Balance could not go below 0');
+    /*
+        Extra precautions
+        in any case, Make sure new balance must be positive or zero,
+        By the way db only accept positive value for wallet balance
+    */
+    if (newBalance < 0) {
+        throw new CustomError('Invalid Request' );
     }
 
     const sql = 'INSERT INTO transactions SET id = ?, walletId = ?, amount = ?, balance = ?, description = ?';
@@ -88,4 +111,4 @@ async function createTransaction(walletId, amount, description ) {
     return {guid, newBalance};
 }
 
-module.exports = { createNewWallet, isWalletExists, fetchWalletById, getWalletTransactions, createTransaction, CustomError};
+module.exports = { createNewWallet, isWalletExists, fetchWalletById, getWalletTransactions, createTransaction, CustomError, formatAmount};

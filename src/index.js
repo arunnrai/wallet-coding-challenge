@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const app = express();
 //app.use(express.json());
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerJSDocs));
-const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError} = require('./helper');
+const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError, formatAmount} = require('./helper');
 // parse application/json
 app.use(bodyParser.json()); //no need to parse json request body, accept json request
 
@@ -17,7 +17,7 @@ app.use((err, req, res, next) => {
 
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     console.error(err);
-    return res.status(400).json({status: false, error: 'Enter valid json body'}); // Bad request
+    return res.status(400).json({message: 'Invalid request body supplied'}); // Bad request
   }
 
   next();
@@ -48,11 +48,11 @@ app.post('/wallet', async (req, res) => {
     if (!name || !balance) {
       return res.status(400).json({ message: 'Invalid request body. name and balance are required fields' });
     }
+    balance = formatAmount(balance);
     const numberSign = Math.sign(balance);
-    if (isNaN(numberSign)) {
-      return res.status(400).json({ message: 'enter valid number, Negative value is not allowed' });
+    if (isNaN(numberSign) || numberSign < 0) {
+      return res.status(400).json({ message: 'Enter valid amount, Negative value is not allowed' });
     }
-    balance = parseFloat(balance).toFixed(2)
 
     const guid =  await createNewWallet(name, balance);
     return res.status(201).json({
@@ -76,7 +76,12 @@ app.get("/wallet/:fetchWalletById", async (req, res) => {
     if (!wallet) {
       return res.status(404).json({ message: 'Wallet not found'});
     }
-    return res.status(200).json(wallet);
+    return res.status(200).json({
+      id : wallet.id,
+      name: wallet.name,
+      balance: formatAmount(wallet.balance),
+      createdDate: wallet.createdDate
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Internal Server Error Occurred' });
@@ -93,11 +98,12 @@ app.post("/wallet/:fetchWalletById/transactions", async (req, res) => {
     }
     const walletId = req.params.fetchWalletById;
     const {guid, newBalance} = await createTransaction(walletId, amount, description);
+
     return res.status(201).json({
       "id": guid,
       "walletId": walletId,
-      "amount": amount,
-      "balance": newBalance,
+      "amount": formatAmount(amount),
+      "balance": formatAmount(newBalance),
       "description": description,
       "createdDate": new Date().toISOString().slice(0, 19)
     });
