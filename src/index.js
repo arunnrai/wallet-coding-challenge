@@ -128,4 +128,4 @@ app.get("/wallet/:fetchWalletById/transactions", async (req, res) => {
   res.status(200).send(transcations);
 });
 
-app.listen(3000, () => console.log("Up & RUnning"));
+module.exports = app;

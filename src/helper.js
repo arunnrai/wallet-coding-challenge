@@ -64,7 +64,10 @@ async function getWalletTransactions(walletId) {
     const values_ex = [walletId];
     const rows = await conn.query(sql_exits, values_ex);
     if (rows.length > 0) {
-        return rows;
+        // convert amount, and balance to float before returning, by default it return string
+        return rows.map(object => {
+            return {...object, amount: parseFloat(object.amount), balance: parseFloat(object.balance)};
+        });
     }
     return []; //no transactions of user
 }
