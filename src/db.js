@@ -16,7 +16,7 @@ conn.query = util.promisify(conn.query).bind(conn);
 /* Todo create table schema */
 conn.connect(function(err) {
     if (err) throw err;
-    console.log("Connected!");
+    //console.log("Connected!");
 });
 
 module.exports = conn;
