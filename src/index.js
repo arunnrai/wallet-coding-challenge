@@ -8,7 +8,7 @@ const currency =  require('currency.js');
 const app = express();
 //app.use(express.json());
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerJSDocs));
-const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError, formatAmount} = require('./helper');
+const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError} = require('./helper');
 // parse application/json
 app.use(bodyParser.json()); //no need to parse json request body, accept json request
 
