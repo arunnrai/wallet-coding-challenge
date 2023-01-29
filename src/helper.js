@@ -1,5 +1,6 @@
 const conn = require("./db");
 const uuid = require("uuid");
+const currency = require("currency.js");
 
 class CustomError extends Error {
     constructor(message) {
@@ -8,13 +9,8 @@ class CustomError extends Error {
     }
 }
 
-function formatAmount(amount) {
-    //Need float amount in 2 decimal places
-    return parseFloat(parseFloat(amount).toFixed(2));
-}
-
 async function createNewWallet(name, balance) {
-    balance = formatAmount(balance);
+    balance = currency(balance).value;
     const guid = uuid.v4() // generate a new guid
     const sql = 'INSERT INTO wallet SET id = ?, name = ?, balance = ?';
     const values = [guid, name, balance];
@@ -46,7 +42,7 @@ async function fetchWalletById(walletId) {
 }
 
 async function updateWalletBalance(walletId, newBalance) {
-    newBalance = formatAmount(newBalance);
+    newBalance = currency(newBalance).value;
     const sql = 'UPDATE wallet SET balance = ? WHERE id = ? limit 1';
     const values = [newBalance, walletId];
     const rows = await conn.query(sql, values);
@@ -85,15 +81,16 @@ async function createTransaction(walletId, amount, description ) {
         throw new CustomError('Wallet not found');
     }
     let balance = wallet.balance;
-    amount = formatAmount(amount);
-    balance = formatAmount(balance);
-    const newBalance = formatAmount(balance + amount);
+    let newBalance;
     // oh! Request for withdrawal
     if (amountSign === -1) {
         // check user has sufficient balance
         if (Math.abs(amount) > balance) {
             throw new CustomError('Invalid amount, you don\'t have sufficient balance' );
         }
+        newBalance = currency(balance).subtract(Math.abs(amount)).value;
+    } else {
+        newBalance = currency(balance).add(amount).value;
     }
 
     /*
@@ -114,4 +111,4 @@ async function createTransaction(walletId, amount, description ) {
     return {guid, newBalance};
 }
 
-module.exports = { createNewWallet, isWalletExists, fetchWalletById, getWalletTransactions, createTransaction, CustomError, formatAmount};
+module.exports = { createNewWallet, isWalletExists, fetchWalletById, getWalletTransactions, createTransaction, CustomError};
