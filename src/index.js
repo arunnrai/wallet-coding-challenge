@@ -3,11 +3,12 @@ const swaggerUI = require("swagger-ui-express");
 const YAML = require("yamljs");
 const swaggerJSDocs = YAML.load("./openapi.yaml");
 const bodyParser = require('body-parser');
+const currency =  require('currency.js');
 
 const app = express();
 //app.use(express.json());
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerJSDocs));
-const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError, formatAmount} = require('./helper');
+const {createNewWallet, fetchWalletById, createTransaction, getWalletTransactions, isWalletExists, CustomError} = require('./helper');
 // parse application/json
 app.use(bodyParser.json()); //no need to parse json request body, accept json request
 
@@ -48,7 +49,11 @@ app.post('/wallet', async (req, res) => {
     if (!name || !balance) {
       return res.status(400).json({ message: 'Invalid request body. name and balance are required fields' });
     }
-    balance = formatAmount(balance);
+    //check amount is invalid or 0
+    if (isNaN(balance) || balance === 0) {
+      return res.status(400).json({ message: 'please enter correct value' });
+    }
+    balance = currency(balance).value;
     const numberSign = Math.sign(balance);
     if (isNaN(numberSign) || numberSign < 0) {
       return res.status(400).json({ message: 'Enter valid amount, Negative value is not allowed' });
@@ -79,7 +84,7 @@ app.get("/wallet/:fetchWalletById", async (req, res) => {
     return res.status(200).json({
       id : wallet.id,
       name: wallet.name,
-      balance: formatAmount(wallet.balance),
+      balance: currency(wallet.balance).value,
       createdDate: wallet.createdDate
     });
   } catch (err) {
@@ -102,8 +107,8 @@ app.post("/wallet/:fetchWalletById/transactions", async (req, res) => {
     return res.status(201).json({
       "id": guid,
       "walletId": walletId,
-      "amount": formatAmount(amount),
-      "balance": formatAmount(newBalance),
+      "amount": currency(amount).value,
+      "balance": currency(newBalance).value,
       "description": description,
       "createdDate": new Date().toISOString().slice(0, 19)
     });

@@ -14,6 +14,7 @@
 - [Express](https://expressjs.com/) -web framework for Node.js
 - [Jest](https://jestjs.io/) - JavaScript testing framework.
 - [Supertest](https://www.npmjs.com/package/supertest) - A library for testing Node.js HTTP servers
+- [currency.js](https://currency.js.org/) fix common floating point issues in javascript with a flexible api
 
 
 ## Local development via Docker
