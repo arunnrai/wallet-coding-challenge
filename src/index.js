@@ -53,7 +53,7 @@ app.post('/wallet', async (req, res) => {
     if (isNaN(balance) || balance === 0) {
       return res.status(400).json({ message: 'please enter correct value' });
     }
-    balance = currency(balance);
+    balance = currency(balance).value;
     const numberSign = Math.sign(balance);
     if (isNaN(numberSign) || numberSign < 0) {
       return res.status(400).json({ message: 'Enter valid amount, Negative value is not allowed' });
