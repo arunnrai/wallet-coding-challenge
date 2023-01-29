@@ -84,7 +84,7 @@ app.get("/wallet/:fetchWalletById", async (req, res) => {
     return res.status(200).json({
       id : wallet.id,
       name: wallet.name,
-      balance: currency(wallet.balance),
+      balance: currency(wallet.balance).value,
       createdDate: wallet.createdDate
     });
   } catch (err) {
